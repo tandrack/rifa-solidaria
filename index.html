@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rifa Solidária</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .titulo {
+            text-align: center;
+            padding: 25px 20px 10px;
+        }
+
+        .titulo h1 {
+            margin: 0;
+            font-size: 32px;
+        }
+
+        .titulo p {
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .premio {
+            width: 100%;
+            display: block;
+        }
+
+        .conteudo {
+            padding: 20px;
+        }
+
+        .valor {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 10px 0 25px;
+        }
+
+        .numeros {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .numero {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 5px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #d9f7df;
+            color: #176b2c;
+        }
+
+        .numero:hover {
+            transform: scale(1.03);
+        }
+
+        .numero.selecionado {
+            background: #f5c542;
+            color: #222;
+        }
+
+        .legenda {
+            display: flex;
+            justify-content: center;
+            gap: 18px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+
+        .botao {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 15px;
+            background: #176b2c;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .botao:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+
+        .info {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="card">
+
+            <div class="titulo">
+                <h1>Rifa Solidária</h1>
+                <p>Concorra a um Super Kit Café ☕</p>
+            </div>
+
+            <img
+                class="premio"
+                src="imagem-premio.jpg"
+                alt="Super Kit Café"
+            >
+
+            <div class="conteudo">
+
+                <div class="valor">
+                    Cada número: R$ 3,00
+                </div>
+
+                <div class="legenda">
+                    <span>🟢 Disponível</span>
+                    <span>🟡 Selecionado</span>
+                </div>
+
+                <div id="numeros" class="numeros"></div>
+
+                <br>
+
+                <button id="continuar" class="botao" disabled>
+                    Continuar
+                </button>
+
+                <div class="info">
+                    Escolha um ou mais números para participar.
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const numerosContainer = document.getElementById("numeros");
+        const botaoContinuar = document.getElementById("continuar");
+
+        const selecionados = [];
+
+        for (let i = 1; i <= 100; i++) {
+
+            const botao = document.createElement("button");
+
+            botao.className = "numero";
+
+            botao.textContent = String(i).padStart(3, "0");
+
+            botao.onclick = function () {
+
+                if (selecionados.includes(i)) {
+
+                    const index = selecionados.indexOf(i);
+                    selecionados.splice(index, 1);
+
+                    botao.classList.remove("selecionado");
+
+                } else {
+
+                    selecionados.push(i);
+
+                    botao.classList.add("selecionado");
+                }
+
+                botaoContinuar.disabled = selecionados.length === 0;
+            };
+
+            numerosContainer.appendChild(botao);
+        }
+
+        botaoContinuar.onclick = function () {
+
+            alert(
+                "Números selecionados: " +
+                selecionados
+                    .sort((a, b) => a - b)
+                    .map(n => String(n).padStart(3, "0"))
+                    .join(", ")
+            );
+
+        };
+
+    </script>
+
+</body>
+</html>
