@@ -296,23 +296,52 @@
         </div>
 
         <div id="sucesso" class="sucesso" style="display:none;">
+    <h2>Reserva realizada! 🎉</h2>
 
-            <h2>Reserva realizada! 🎉</h2>
+    <p id="numerosReservados"></p>
 
-            <p id="numerosReservados"></p>
+    <p id="valorPagamento"></p>
 
-            <p>
-                Sua reserva foi registrada com sucesso.
-            </p>
+    <div style="
+        background:#f1f8f3;
+        border-radius:12px;
+        padding:15px;
+        margin:18px 0;
+    ">
+        <strong>💚 Agora faça o pagamento via PIX</strong>
 
-            <button
-                id="fecharSucesso"
-                class="botao"
-            >
-                Fechar
-            </button>
+        <p style="margin:10px 0 5px;">
+            Chave PIX:
+        </p>
 
-        </div>
+        <strong style="font-size:18px;">
+            (85) 99146-5064
+        </strong>
+
+        <button
+            id="copiarPix"
+            class="botao"
+            style="margin-top:12px;"
+        >
+            Copiar chave PIX
+        </button>
+    </div>
+
+    <button
+        id="enviarComprovante"
+        class="botao"
+    >
+        📲 Enviar comprovante pelo WhatsApp
+    </button>
+
+    <button
+        id="fecharSucesso"
+        class="botao botao-secundario"
+        style="margin-top:10px;"
+    >
+        Fechar
+    </button>
+</div>
 
     </div>
 
@@ -346,7 +375,11 @@
 
     const resumo = document.getElementById("resumo");
     const numerosReservados = document.getElementById("numerosReservados");
-
+    
+    const valorPagamento = document.getElementById("valorPagamento");
+    const botaoCopiarPix = document.getElementById("copiarPix");
+    const botaoEnviarComprovante = document.getElementById("enviarComprovante");
+    
     const botaoCancelar = document.getElementById("cancelar");
     const botaoConfirmar = document.getElementById("confirmar");
     const botaoFecharSucesso = document.getElementById("fecharSucesso");
@@ -620,21 +653,66 @@
             const resultado = await resposta.json();
 
 
-            /*
-             * RESERVA REALIZADA
-             */
+          /*
+ * RESERVA REALIZADA
+ */
 
-            formulario.style.display = "none";
-            sucesso.style.display = "block";
+formulario.style.display = "none";
+sucesso.style.display = "block";
 
-            numerosReservados.innerHTML =
-                "Números reservados:<br><strong>" +
-                numeros
-                    .map(n => String(n).padStart(3, "0"))
-                    .join(", ") +
-                "</strong>";
+numerosReservados.innerHTML =
+    "Números reservados:<br><strong>" +
+    numeros
+        .map(n => String(n).padStart(3, "0"))
+        .join(", ") +
+    "</strong>";
 
+const total = numeros.length * 3;
 
+valorPagamento.innerHTML =
+    "Total a pagar: <strong>R$ " +
+    total.toFixed(2).replace(".", ",") +
+    "</strong>";
+
+botaoEnviarComprovante.onclick = function () {
+
+    const mensagemWhatsApp =
+        "Olá! Fiz o pagamento da Rifa Solidária.\n" +
+        "Números: " +
+        numeros
+            .map(n => String(n).padStart(3, "0"))
+            .join(", ") +
+        "\nValor: R$ " +
+        total.toFixed(2).replace(".", ",") +
+        "\nSegue o comprovante.";
+
+    window.open(
+        "https://wa.me/5585991465064?text=" +
+        encodeURIComponent(mensagemWhatsApp),
+        "_blank"
+    );
+};
+            botaoCopiarPix.onclick = async function () {
+
+    try {
+
+        await navigator.clipboard.writeText("5585991465064");
+
+        botaoCopiarPix.textContent = "PIX copiado! ✅";
+
+        setTimeout(function () {
+            botaoCopiarPix.textContent = "Copiar chave PIX";
+        }, 2000);
+
+    } catch (erro) {
+
+        alert(
+            "Não foi possível copiar automaticamente.\n\n" +
+            "Chave PIX: (85) 99146-5064"
+        );
+
+    }
+};
             /*
              * DESMARCAR SELEÇÃO
              */
