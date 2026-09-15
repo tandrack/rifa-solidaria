@@ -75,6 +75,7 @@
             cursor: pointer;
             background: #d9f7df;
             color: #176b2c;
+            transition: 0.15s;
         }
 
         .numero:hover {
@@ -86,12 +87,24 @@
             color: #222;
         }
 
+        .numero.reservado {
+            background: #d3d3d3;
+            color: #777;
+            cursor: not-allowed;
+            text-decoration: line-through;
+        }
+
+        .numero.reservado:hover {
+            transform: none;
+        }
+
         .legenda {
             display: flex;
             justify-content: center;
             gap: 18px;
             margin: 20px 0;
             font-size: 14px;
+            flex-wrap: wrap;
         }
 
         .botao {
@@ -117,105 +130,586 @@
             font-size: 14px;
             margin-top: 15px;
         }
+
+        .mensagem {
+            text-align: center;
+            margin: 15px 0;
+            font-weight: bold;
+            display: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 999;
+        }
+
+        .modal-conteudo {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 18px;
+            padding: 25px;
+        }
+
+        .modal-conteudo h2 {
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .campo {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            font-size: 16px;
+        }
+
+        .botoes-modal {
+            display: flex;
+            gap: 10px;
+        }
+
+        .botao-secundario {
+            background: #ddd;
+            color: #222;
+        }
+
+        .carregando {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .sucesso {
+            text-align: center;
+        }
+
+        .sucesso h2 {
+            color: #176b2c;
+        }
     </style>
 </head>
 
 <body>
 
-    <div class="container">
+<div class="container">
 
-        <div class="card">
+    <div class="card">
 
-            <div class="titulo">
-                <h1>Rifa Solidária</h1>
-                <p>Concorra a um Super Kit Café ☕</p>
+        <div class="titulo">
+            <h1>Rifa Solidária</h1>
+            <p>Concorra a um Super Kit Café ☕</p>
+        </div>
+
+        <img
+            class="premio"
+            src="imagem-premio.jpg"
+            alt="Super Kit Café"
+        >
+
+        <div class="conteudo">
+
+            <div class="valor">
+                Cada número: R$ 3,00
             </div>
 
-            <img
-                class="premio"
-                src="imagem-premio.jpg"
-                alt="Super Kit Café"
-            >
+            <div class="legenda">
+                <span>🟢 Disponível</span>
+                <span>🟡 Selecionado</span>
+                <span>⚪ Reservado</span>
+            </div>
 
-            <div class="conteudo">
+            <div id="mensagem" class="mensagem"></div>
 
-                <div class="valor">
-                    Cada número: R$ 3,00
+            <div id="numeros" class="numeros">
+                <div class="carregando">
+                    Carregando números...
                 </div>
+            </div>
 
-                <div class="legenda">
-                    <span>🟢 Disponível</span>
-                    <span>🟡 Selecionado</span>
-                </div>
+            <br>
 
-                <div id="numeros" class="numeros"></div>
+            <button id="continuar" class="botao" disabled>
+                Continuar
+            </button>
 
-                <br>
-
-                <button id="continuar" class="botao" disabled>
-                    Continuar
-                </button>
-
-                <div class="info">
-                    Escolha um ou mais números para participar.
-                </div>
-
+            <div class="info">
+                Escolha um ou mais números para participar.
             </div>
 
         </div>
 
     </div>
 
-    <script>
+</div>
 
-        const numerosContainer = document.getElementById("numeros");
-        const botaoContinuar = document.getElementById("continuar");
+<!-- MODAL -->
+<div id="modal" class="modal">
 
-        const selecionados = [];
+    <div class="modal-conteudo">
 
-        for (let i = 1; i <= 100; i++) {
+        <div id="formulario">
 
-            const botao = document.createElement("button");
+            <h2>Finalizar reserva</h2>
 
-            botao.className = "numero";
+            <p id="resumo" style="text-align:center;"></p>
 
-            botao.textContent = String(i).padStart(3, "0");
+            <input
+                id="nome"
+                class="campo"
+                type="text"
+                placeholder="Seu nome"
+            >
 
-            botao.onclick = function () {
+            <input
+                id="whatsapp"
+                class="campo"
+                type="tel"
+                placeholder="Seu WhatsApp"
+            >
 
-                if (selecionados.includes(i)) {
+            <div class="botoes-modal">
 
-                    const index = selecionados.indexOf(i);
-                    selecionados.splice(index, 1);
+                <button
+                    id="cancelar"
+                    class="botao botao-secundario"
+                >
+                    Voltar
+                </button>
 
-                    botao.classList.remove("selecionado");
+                <button
+                    id="confirmar"
+                    class="botao"
+                >
+                    Confirmar reserva
+                </button>
+
+            </div>
+
+        </div>
+
+        <div id="sucesso" class="sucesso" style="display:none;">
+
+            <h2>Reserva realizada! 🎉</h2>
+
+            <p id="numerosReservados"></p>
+
+            <p>
+                Sua reserva foi registrada com sucesso.
+            </p>
+
+            <button
+                id="fecharSucesso"
+                class="botao"
+            >
+                Fechar
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+    /*
+     * CONFIGURAÇÃO SUPABASE
+     */
+
+    const SUPABASE_URL = "https://dwnakuparteevqlpxkzo.supabase.co";
+
+    const SUPABASE_ANON_KEY = "sua-chave-publicavel-aqui";
+
+
+    /*
+     * ELEMENTOS DA PÁGINA
+     */
+
+    const numerosContainer = document.getElementById("numeros");
+    const botaoContinuar = document.getElementById("continuar");
+    const mensagem = document.getElementById("mensagem");
+
+    const modal = document.getElementById("modal");
+    const formulario = document.getElementById("formulario");
+    const sucesso = document.getElementById("sucesso");
+
+    const nomeInput = document.getElementById("nome");
+    const whatsappInput = document.getElementById("whatsapp");
+
+    const resumo = document.getElementById("resumo");
+    const numerosReservados = document.getElementById("numerosReservados");
+
+    const botaoCancelar = document.getElementById("cancelar");
+    const botaoConfirmar = document.getElementById("confirmar");
+    const botaoFecharSucesso = document.getElementById("fecharSucesso");
+
+
+    /*
+     * NÚMEROS SELECIONADOS
+     */
+
+    const selecionados = new Set();
+
+
+    /*
+     * MOSTRAR MENSAGEM
+     */
+
+    function mostrarMensagem(texto, erro = false) {
+
+        mensagem.textContent = texto;
+        mensagem.style.display = "block";
+
+        if (erro) {
+            mensagem.style.color = "#b00020";
+        } else {
+            mensagem.style.color = "#176b2c";
+        }
+    }
+
+
+    /*
+     * ESCAPAR TEXTO
+     */
+
+    function escaparHtml(texto) {
+
+        const div = document.createElement("div");
+        div.textContent = texto;
+
+        return div.innerHTML;
+    }
+
+
+    /*
+     * CARREGAR NÚMEROS DO SUPABASE
+     */
+
+    async function carregarNumeros() {
+
+        try {
+
+            const resposta = await fetch(
+                SUPABASE_URL + "/rest/v1/rpc/listar_numeros_rifa",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+                        "Content-Type": "application/json"
+                    },
+
+                    body: "{}"
+                }
+            );
+
+            if (!resposta.ok) {
+
+                const erro = await resposta.text();
+
+                throw new Error(erro);
+            }
+
+            const dados = await resposta.json();
+
+            numerosContainer.innerHTML = "";
+
+            dados.forEach(item => {
+
+                const numero = Number(item.numero);
+
+                const botao = document.createElement("button");
+
+                botao.className = "numero";
+
+                botao.textContent =
+                    String(numero).padStart(3, "0");
+
+                if (item.status !== "disponivel") {
+
+                    botao.classList.add("reservado");
+
+                    botao.disabled = true;
 
                 } else {
 
-                    selecionados.push(i);
+                    botao.onclick = function () {
 
-                    botao.classList.add("selecionado");
+                        if (selecionados.has(numero)) {
+
+                            selecionados.delete(numero);
+
+                            botao.classList.remove("selecionado");
+
+                        } else {
+
+                            selecionados.add(numero);
+
+                            botao.classList.add("selecionado");
+                        }
+
+                        atualizarBotao();
+                    };
                 }
 
-                botaoContinuar.disabled = selecionados.length === 0;
-            };
+                numerosContainer.appendChild(botao);
+            });
 
-            numerosContainer.appendChild(botao);
+        } catch (erro) {
+
+            console.error(erro);
+
+            numerosContainer.innerHTML =
+                '<div class="carregando">Não foi possível carregar os números.</div>';
+
+            mostrarMensagem(
+                "Erro ao carregar a rifa. Atualize a página e tente novamente.",
+                true
+            );
+        }
+    }
+
+
+    /*
+     * ATUALIZAR BOTÃO CONTINUAR
+     */
+
+    function atualizarBotao() {
+
+        botaoContinuar.disabled =
+            selecionados.size === 0;
+
+        if (selecionados.size > 0) {
+
+            botaoContinuar.textContent =
+                "Continuar (" + selecionados.size + ")";
+        } else {
+
+            botaoContinuar.textContent =
+                "Continuar";
+        }
+    }
+
+
+    /*
+     * ABRIR MODAL
+     */
+
+    botaoContinuar.onclick = function () {
+
+        const numeros = Array.from(selecionados)
+            .sort((a, b) => a - b);
+
+        resumo.innerHTML =
+            "Números escolhidos:<br><strong>" +
+            numeros
+                .map(n => String(n).padStart(3, "0"))
+                .join(", ") +
+            "</strong><br><br>" +
+            "Total: <strong>R$ " +
+            (numeros.length * 3).toFixed(2).replace(".", ",") +
+            "</strong>";
+
+        modal.style.display = "flex";
+
+        nomeInput.focus();
+    };
+
+
+    /*
+     * CANCELAR
+     */
+
+    botaoCancelar.onclick = function () {
+
+        modal.style.display = "none";
+    };
+
+
+    /*
+     * CONFIRMAR RESERVA
+     */
+
+    botaoConfirmar.onclick = async function () {
+
+        const nome = nomeInput.value.trim();
+        const whatsapp = whatsappInput.value.trim();
+
+        if (!nome) {
+
+            alert("Informe seu nome.");
+            nomeInput.focus();
+
+            return;
         }
 
-        botaoContinuar.onclick = function () {
+        if (!whatsapp) {
 
-            alert(
-                "Números selecionados: " +
-                selecionados
-                    .sort((a, b) => a - b)
-                    .map(n => String(n).padStart(3, "0"))
-                    .join(", ")
+            alert("Informe seu WhatsApp.");
+            whatsappInput.focus();
+
+            return;
+        }
+
+        const numeros = Array.from(selecionados)
+            .sort((a, b) => a - b);
+
+
+        botaoConfirmar.disabled = true;
+        botaoConfirmar.textContent = "Reservando...";
+
+
+        try {
+
+            const resposta = await fetch(
+                SUPABASE_URL + "/rest/v1/rpc/reservar_numeros",
+                {
+                    method: "POST",
+
+                    headers: {
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+                        "Content-Type": "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        p_numeros: numeros,
+                        p_nome: nome,
+                        p_whatsapp: whatsapp
+                    })
+                }
             );
 
-        };
 
-    </script>
+            if (!resposta.ok) {
+
+                const textoErro = await resposta.text();
+
+                let mensagemErro =
+                    "Não foi possível realizar a reserva.";
+
+                try {
+
+                    const dadosErro =
+                        JSON.parse(textoErro);
+
+                    if (dadosErro.message) {
+                        mensagemErro = dadosErro.message;
+                    }
+
+                } catch (e) {
+
+                    if (textoErro) {
+                        mensagemErro = textoErro;
+                    }
+                }
+
+                throw new Error(mensagemErro);
+            }
+
+
+            const resultado = await resposta.json();
+
+
+            /*
+             * RESERVA REALIZADA
+             */
+
+            formulario.style.display = "none";
+            sucesso.style.display = "block";
+
+            numerosReservados.innerHTML =
+                "Números reservados:<br><strong>" +
+                numeros
+                    .map(n => String(n).padStart(3, "0"))
+                    .join(", ") +
+                "</strong>";
+
+
+            /*
+             * DESMARCAR SELEÇÃO
+             */
+
+            selecionados.clear();
+
+            atualizarBotao();
+
+
+            /*
+             * RECARREGAR NÚMEROS
+             */
+
+            await carregarNumeros();
+
+
+        } catch (erro) {
+
+            console.error(erro);
+
+            alert(erro.message);
+
+            /*
+             * O número pode ter sido reservado
+             * por outra pessoa enquanto o cliente
+             * estava preenchendo os dados.
+             */
+
+            await carregarNumeros();
+
+        } finally {
+
+            botaoConfirmar.disabled = false;
+            botaoConfirmar.textContent =
+                "Confirmar reserva";
+        }
+    };
+
+
+    /*
+     * FECHAR MENSAGEM DE SUCESSO
+     */
+
+    botaoFecharSucesso.onclick = function () {
+
+        modal.style.display = "none";
+
+        formulario.style.display = "block";
+        sucesso.style.display = "none";
+
+        nomeInput.value = "";
+        whatsappInput.value = "";
+    };
+
+
+    /*
+     * FECHAR MODAL CLICANDO FORA
+     */
+
+    modal.onclick = function (evento) {
+
+        if (evento.target === modal) {
+
+            modal.style.display = "none";
+        }
+    };
+
+
+    /*
+     * INICIAR
+     */
+
+    carregarNumeros();
+
+</script>
 
 </body>
 </html>
