@@ -1,1 +1,715 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <title>Painel Administrativo | Rifa Solidária</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f5;
+            color: #222;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 25px 15px 50px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitulo {
+            color: #666;
+            margin-top: 0;
+        }
+
+        .login,
+        .painel {
+            background: white;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .login {
+            max-width: 420px;
+            margin: 60px auto;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 11px 15px;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .botao-principal {
+            width: 100%;
+            background: #198754;
+            color: white;
+            font-weight: bold;
+        }
+
+        .botao-pago {
+            background: #198754;
+            color: white;
+        }
+
+        .botao-liberar {
+            background: #dc3545;
+            color: white;
+        }
+
+        .botao-sair {
+            background: #6c757d;
+            color: white;
+            float: right;
+        }
+
+        .mensagem {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .resumo {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .card {
+            background: #f1f8f3;
+            padding: 18px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .card strong {
+            display: block;
+            font-size: 28px;
+            margin-top: 5px;
+        }
+
+        .tabela-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 12px 8px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #f1f1f1;
+        }
+
+        .status {
+            font-weight: bold;
+        }
+
+        .disponivel {
+            color: #198754;
+        }
+
+        .reservado {
+            color: #d39e00;
+        }
+
+        .pago {
+            color: #198754;
+        }
+
+        @media (max-width: 700px) {
+
+            .resumo {
+                grid-template-columns: 1fr;
+            }
+
+            th,
+            td {
+                font-size: 13px;
+            }
+
+            .botao-sair {
+                float: none;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- LOGIN -->
+
+    <div id="login" class="login">
+
+        <h1>🔐 Painel da Rifa</h1>
+
+        <p class="subtitulo">
+            Acesso administrativo
+        </p>
+
+        <label for="email">E-mail</label>
+
+        <input
+            type="email"
+            id="email"
+            placeholder="Seu e-mail"
+        >
+
+        <label for="senha">Senha</label>
+
+        <input
+            type="password"
+            id="senha"
+            placeholder="Sua senha"
+        >
+
+        <button
+            id="entrar"
+            class="botao-principal"
+        >
+            Entrar
+        </button>
+
+        <div
+            id="mensagemLogin"
+            class="mensagem"
+        ></div>
+
+    </div>
+
+
+    <!-- PAINEL -->
+
+    <div
+        id="painel"
+        class="painel"
+        style="display:none;"
+    >
+
+        <button
+            id="sair"
+            class="botao-sair"
+        >
+            Sair
+        </button>
+
+        <h1>📋 Rifa Solidária</h1>
+
+        <p class="subtitulo">
+            Painel administrativo
+        </p>
+
+
+        <!-- RESUMO -->
+
+        <div class="resumo">
+
+            <div class="card">
+                Disponíveis
+                <strong id="totalDisponiveis">0</strong>
+            </div>
+
+            <div class="card">
+                Reservados
+                <strong id="totalReservados">0</strong>
+            </div>
+
+            <div class="card">
+                Pagos
+                <strong id="totalPagos">0</strong>
+            </div>
+
+        </div>
+
+
+        <h2>
+            💰 Arrecadado:
+            <span id="valorArrecadado">
+                R$ 0,00
+            </span>
+        </h2>
+
+
+        <!-- TABELA -->
+
+        <div class="tabela-container">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Nº</th>
+                        <th>Status</th>
+                        <th>Nome</th>
+                        <th>WhatsApp</th>
+                        <th>Valor</th>
+                        <th>Ação</th>
+                    </tr>
+
+                </thead>
+
+                <tbody id="tabelaNumeros"></tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+const SUPABASE_URL =
+    "https://dwnakuparteevqlpxkzo.supabase.co";
+
+/*
+ * IMPORTANTE:
+ * Use aqui a mesma chave pública que já está funcionando
+ * no seu index.html da rifa.
+ */
+
+const SUPABASE_ANON_KEY =
+    "sb_publishable_lZdcl4IlKx6Uwyw1plZYQA_1db7reAB";
+
+
+const supabaseClient =
+    window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_ANON_KEY
+    );
+
+
+/*
+ * ELEMENTOS
+ */
+
+const login = document.getElementById("login");
+const painel = document.getElementById("painel");
+
+const emailInput = document.getElementById("email");
+const senhaInput = document.getElementById("senha");
+
+const botaoEntrar =
+    document.getElementById("entrar");
+
+const botaoSair =
+    document.getElementById("sair");
+
+const mensagemLogin =
+    document.getElementById("mensagemLogin");
+
+const tabelaNumeros =
+    document.getElementById("tabelaNumeros");
+
+const totalDisponiveis =
+    document.getElementById("totalDisponiveis");
+
+const totalReservados =
+    document.getElementById("totalReservados");
+
+const totalPagos =
+    document.getElementById("totalPagos");
+
+const valorArrecadado =
+    document.getElementById("valorArrecadado");
+
+
+/*
+ * LOGIN
+ */
+
+botaoEntrar.onclick = async function () {
+
+    const email = emailInput.value.trim();
+    const senha = senhaInput.value;
+
+    if (!email || !senha) {
+
+        mostrarMensagemLogin(
+            "Informe seu e-mail e sua senha."
+        );
+
+        return;
+    }
+
+    botaoEntrar.disabled = true;
+    botaoEntrar.textContent = "Entrando...";
+
+    const { data, error } =
+        await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: senha
+        });
+
+    botaoEntrar.disabled = false;
+    botaoEntrar.textContent = "Entrar";
+
+    if (error) {
+
+        mostrarMensagemLogin(
+            "E-mail ou senha incorretos."
+        );
+
+        return;
+    }
+
+    mostrarPainel();
+};
+
+
+/*
+ * VERIFICAR LOGIN EXISTENTE
+ */
+
+async function verificarSessao() {
+
+    const {
+        data: { session }
+    } = await supabaseClient.auth.getSession();
+
+    if (session) {
+        mostrarPainel();
+    }
+}
+
+
+/*
+ * MOSTRAR PAINEL
+ */
+
+function mostrarPainel() {
+
+    login.style.display = "none";
+    painel.style.display = "block";
+
+    carregarNumeros();
+}
+
+
+/*
+ * SAIR
+ */
+
+botaoSair.onclick = async function () {
+
+    await supabaseClient.auth.signOut();
+
+    painel.style.display = "none";
+    login.style.display = "block";
+
+    emailInput.value = "";
+    senhaInput.value = "";
+};
+
+
+/*
+ * MENSAGEM DE LOGIN
+ */
+
+function mostrarMensagemLogin(texto) {
+
+    mensagemLogin.textContent = texto;
+    mensagemLogin.style.display = "block";
+}
+
+
+/*
+ * CARREGAR NÚMEROS
+ */
+
+async function carregarNumeros() {
+
+    tabelaNumeros.innerHTML =
+        "<tr><td colspan='6'>Carregando...</td></tr>";
+
+    const { data, error } =
+        await supabaseClient
+            .from("numeros_rifa")
+            .select("*")
+            .order("numero");
+
+    if (error) {
+
+        tabelaNumeros.innerHTML =
+            "<tr><td colspan='6'>Erro ao carregar números.</td></tr>";
+
+        console.error(error);
+
+        return;
+    }
+
+    tabelaNumeros.innerHTML = "";
+
+    let disponiveis = 0;
+    let reservados = 0;
+    let pagos = 0;
+    let arrecadado = 0;
+
+
+    data.forEach(function (item) {
+
+        if (item.status === "disponivel") {
+
+            disponiveis++;
+
+        } else if (item.status === "reservado") {
+
+            reservados++;
+
+        } else if (item.status === "pago") {
+
+            pagos++;
+
+            arrecadado += Number(item.valor || 0);
+        }
+
+
+        const linha =
+            document.createElement("tr");
+
+
+        let acao = "";
+
+
+        if (item.status === "reservado") {
+
+            acao =
+                "<button " +
+                "class='botao-pago' " +
+                "onclick='marcarComoPago(" +
+                item.numero +
+                ")'>" +
+                "Marcar como pago" +
+                "</button>" +
+
+                "<br>" +
+
+                "<button " +
+                "class='botao-liberar' " +
+                "onclick='liberarNumero(" +
+                item.numero +
+                ")'>" +
+                "Liberar" +
+                "</button>";
+
+        }
+
+
+        if (item.status === "pago") {
+
+            acao =
+                "<button " +
+                "class='botao-liberar' " +
+                "onclick='liberarNumero(" +
+                item.numero +
+                ")'>" +
+                "Liberar" +
+                "</button>";
+        }
+
+
+        linha.innerHTML =
+
+            "<td>" +
+            String(item.numero).padStart(3, "0") +
+            "</td>" +
+
+            "<td class='status " +
+            item.status +
+            "'>" +
+            item.status +
+            "</td>" +
+
+            "<td>" +
+            (item.nome_comprador || "-") +
+            "</td>" +
+
+            "<td>" +
+            (item.whatsapp || "-") +
+            "</td>" +
+
+            "<td>R$ " +
+            Number(item.valor || 0)
+                .toFixed(2)
+                .replace(".", ",") +
+            "</td>" +
+
+            "<td>" +
+            acao +
+            "</td>";
+
+
+        tabelaNumeros.appendChild(linha);
+
+    });
+
+
+    totalDisponiveis.textContent =
+        disponiveis;
+
+    totalReservados.textContent =
+        reservados;
+
+    totalPagos.textContent =
+        pagos;
+
+    valorArrecadado.textContent =
+        "R$ " +
+        arrecadado
+            .toFixed(2)
+            .replace(".", ",");
+
+}
+
+
+/*
+ * MARCAR COMO PAGO
+ */
+
+async function marcarComoPago(numero) {
+
+    const confirmar =
+        confirm(
+            "Confirmar pagamento do número " +
+            String(numero).padStart(3, "0") +
+            "?"
+        );
+
+    if (!confirmar) return;
+
+
+    const { error } =
+        await supabaseClient
+            .from("numeros_rifa")
+            .update({
+                status: "pago",
+                pago_em: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .eq("numero", numero);
+
+
+    if (error) {
+
+        alert(
+            "Não foi possível marcar como pago."
+        );
+
+        console.error(error);
+
+        return;
+    }
+
+
+    await carregarNumeros();
+
+}
+
+
+/*
+ * LIBERAR NÚMERO
+ */
+
+async function liberarNumero(numero) {
+
+    const confirmar =
+        confirm(
+            "Liberar o número " +
+            String(numero).padStart(3, "0") +
+            "?\n\n" +
+            "O comprador perderá a reserva."
+        );
+
+    if (!confirmar) return;
+
+
+    const { error } =
+        await supabaseClient
+            .from("numeros_rifa")
+            .update({
+                status: "disponivel",
+                nome_comprador: null,
+                whatsapp: null,
+                valor: null,
+                reservado_em: null,
+                pago_em: null,
+                updated_at: new Date().toISOString()
+            })
+            .eq("numero", numero);
+
+
+    if (error) {
+
+        alert(
+            "Não foi possível liberar o número."
+        );
+
+        console.error(error);
+
+        return;
+    }
+
+
+    await carregarNumeros();
+
+}
+
+
+/*
+ * INICIAR
+ */
+
+verificarSessao();
+
+</script>
+
+</body>
+</html>
