@@ -630,10 +630,11 @@ async function marcarComoPago(numero) {
         await supabaseClient
             .from("numeros_rifa")
             .update({
-                status: "pago",
-                pago_em: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-            })
+    status: "pago",
+    valor: 3.00,
+    pago_em: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+})
             .eq("numero", numero);
 
 
