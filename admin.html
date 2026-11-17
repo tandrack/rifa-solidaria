@@ -252,7 +252,18 @@
 .botao-compartilhar {
     background: #1877c9;
 }
+.botao-limpar-historico {
+    background: #dc3545;
+    color: white;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 15px;
+}
 
+.botao-limpar-historico:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
 .numero-vencedor.animando {
     animation: pulsarNumero 0.18s infinite alternate;
 }
@@ -473,6 +484,14 @@
 
         <h3>📜 Histórico de Sorteios</h3>
 
+        <button
+    type="button"
+    id="botaoLimparHistorico"
+    class="botao-limpar-historico"
+>
+    🗑️ LIMPAR HISTÓRICO
+</button>
+
         <div class="tabela-container">
 
             <table>
@@ -615,6 +634,9 @@ const botaoComprovante =
 const botaoCompartilhar =
     document.getElementById("botaoCompartilhar");
 
+const botaoLimparHistorico =
+    document.getElementById("botaoLimparHistorico");
+    
 /*
  * LOGIN
  */
@@ -1382,6 +1404,87 @@ async function compartilharResultado(item) {
         encodeURIComponent(texto);
 
 }
+
+/* LIMPAR HISTÓRICO DE SORTEIOS */
+
+botaoLimparHistorico.onclick = limparHistoricoSorteios;
+
+async function limparHistoricoSorteios() {
+
+    const confirmar = confirm(
+        "ATENÇÃO!\n\n" +
+        "Você está prestes a apagar TODOS os registros " +
+        "anteriores de sorteios.\n\n" +
+        "Essa ação não poderá ser desfeita.\n\n" +
+        "Os números, pagamentos e valores arrecadados " +
+        "NÃO serão alterados.\n\n" +
+        "Deseja realmente continuar?"
+    );
+
+    if (!confirmar) return;
+
+    const confirmarNovamente = confirm(
+        "ÚLTIMA CONFIRMAÇÃO!\n\n" +
+        "Deseja realmente limpar todo o histórico de sorteios?"
+    );
+
+    if (!confirmarNovamente) return;
+
+    botaoLimparHistorico.disabled = true;
+    botaoLimparHistorico.textContent = "LIMPANDO HISTÓRICO...";
+
+    try {
+
+        const { data, error } = await supabaseClient.rpc(
+            "limpar_historico_sorteios"
+        );
+
+        if (error) {
+            throw error;
+        }
+
+        // Limpar resultado anterior exibido na tela
+
+        ultimoSorteio = null;
+
+        resultadoNumero.textContent = "???";
+
+        detalhesVencedor.textContent =
+            "Aguardando realização do sorteio.";
+
+        botaoComprovante.disabled = true;
+        botaoCompartilhar.disabled = true;
+
+        // Atualizar histórico
+
+        await carregarHistoricoSorteios();
+
+        alert(
+            "Histórico limpo com sucesso!\n\n" +
+            "Registros apagados: " + data +
+            "\n\nOs números e pagamentos foram preservados."
+        );
+
+    } catch (error) {
+
+        console.error("Erro ao limpar histórico:", error);
+
+        alert(
+            "Não foi possível limpar o histórico.\n\n" +
+            (error.message || "Verifique sua conexão e tente novamente.")
+        );
+
+    } finally {
+
+        botaoLimparHistorico.disabled = false;
+
+        botaoLimparHistorico.textContent =
+            "🗑️ LIMPAR HISTÓRICO";
+
+    }
+
+}
+    
 /* CARREGAR HISTÓRICO DE SORTEIOS */
 
 async function carregarHistoricoSorteios() {
