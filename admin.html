@@ -1382,55 +1382,27 @@ async function compartilharResultado(item) {
         encodeURIComponent(texto);
 
 }
-
-
-/* CARREGAR HISTÓRICO */
+/* CARREGAR HISTÓRICO DE SORTEIOS */
 
 async function carregarHistoricoSorteios() {
 
     tabelaSorteios.innerHTML = "";
 
-    const { data, error } =
-        await supabaseClient
-            .from("sorteios")
-            .select("*")
-            .order("sorteado_em", {
-                ascending: false
-            });
+    const { data, error } = await supabaseClient
+        .from("sorteios")
+        .select("*")
+        .order("sorteado_em", { ascending: false });
 
     if (error) {
-
         console.error("Erro no histórico:", error);
-
-        const linha = document.createElement("tr");
-        const coluna = document.createElement("td");
-
-        coluna.colSpan = 5;
-
-        coluna.textContent =
-            "Não foi possível carregar o histórico.";
-
-        linha.appendChild(coluna);
-
-        tabelaSorteios.appendChild(linha);
-
+        tabelaSorteios.innerHTML =
+            "<tr><td colspan='5'>Não foi possível carregar o histórico.</td></tr>";
         return;
     }
 
     if (!data || data.length === 0) {
-
-        const linha = document.createElement("tr");
-        const coluna = document.createElement("td");
-
-        coluna.colSpan = 5;
-
-        coluna.textContent =
-            "Nenhum sorteio realizado até o momento.";
-
-        linha.appendChild(coluna);
-
-        tabelaSorteios.appendChild(linha);
-
+        tabelaSorteios.innerHTML =
+            "<tr><td colspan='5'>Nenhum sorteio realizado até o momento.</td></tr>";
         return;
     }
 
@@ -1439,175 +1411,37 @@ async function carregarHistoricoSorteios() {
         const linha = document.createElement("tr");
 
         const valores = [
-            new Date(item.sorteado_em)
-                .toLocaleString("pt-BR"),
-
-            formatarNumeroSorteio(item.numero),
-
+            new Date(item.sorteado_em).toLocaleString("pt-BR"),
+            String(item.numero).padStart(3, "0"),
             item.nome_comprador || "Não informado",
-
             item.whatsapp || "Não informado"
         ];
 
         valores.forEach(function (valor) {
-
             const coluna = document.createElement("td");
-
             coluna.textContent = valor;
-
             linha.appendChild(coluna);
-
         });
 
-        // Botão de comprovante individual
-
-        const colunaAcao = document.createElement("td");
+        const colunaComprovante = document.createElement("td");
 
         const botao = document.createElement("button");
 
         botao.type = "button";
-        botao.className = "botao-pago";
         botao.textContent = "📄 Gerar";
+        botao.className = "botao-comprovante";
 
         botao.onclick = async function () {
-
             try {
-
                 await baixarComprovante(item);
-
             } catch (error) {
-
                 console.error(error);
-
-                alert(
-                    "Não foi possível gerar o comprovante."
-                );
-
+                alert("Não foi possível gerar o comprovante.");
             }
-
         };
 
-        colunaAcao.appendChild(botao);
-
-        linha.appendChild(colunaAcao);
-
-        tabelaSorteios.appendChild(linha);
-
-    });
-
-}
-
-    } catch (error) {
-
-        console.error("Erro no sorteio:", error);
-
-        mostrarMensagemSorteio(
-            error.message || "Não foi possível realizar o sorteio.",
-            false
-        );
-
-    } finally {
-
-        botaoSortear.disabled = false;
-        botaoSortear.textContent =
-            "🎯 REALIZAR SORTEIO";
-
-    }
-
-}
-
-
-/*
- * MENSAGEM DO SORTEIO
- */
-
-function mostrarMensagemSorteio(texto, sucesso) {
-
-    mensagemSorteio.textContent = texto;
-
-    mensagemSorteio.style.display = "block";
-
-    mensagemSorteio.style.background =
-        sucesso ? "#d1e7dd" : "#f8d7da";
-
-    mensagemSorteio.style.color =
-        sucesso ? "#0f5132" : "#842029";
-
-}
-
-
-/*
- * CARREGAR HISTÓRICO
- */
-
-async function carregarHistoricoSorteios() {
-
-    tabelaSorteios.innerHTML = "";
-
-    const { data, error } =
-        await supabaseClient
-            .from("sorteios")
-            .select("*")
-            .order("sorteado_em", {
-                ascending: false
-            });
-
-    if (error) {
-
-        console.error("Erro no histórico:", error);
-
-        const linha = document.createElement("tr");
-        const coluna = document.createElement("td");
-
-        coluna.colSpan = 5;
-        coluna.textContent =
-            "Não foi possível carregar o histórico.";
-
-        linha.appendChild(coluna);
-        tabelaSorteios.appendChild(linha);
-
-        return;
-    }
-
-    if (!data || data.length === 0) {
-
-        const linha = document.createElement("tr");
-        const coluna = document.createElement("td");
-
-        coluna.colSpan = 5;
-        coluna.textContent =
-            "Nenhum sorteio realizado até o momento.";
-
-        linha.appendChild(coluna);
-        tabelaSorteios.appendChild(linha);
-
-        return;
-    }
-
-    data.forEach(function (item) {
-
-        const linha = document.createElement("tr");
-
-        const valores = [
-            new Date(item.sorteado_em)
-                .toLocaleString("pt-BR"),
-
-            String(item.numero).padStart(3, "0"),
-
-            item.nome_comprador || "Não informado",
-
-            item.whatsapp || "Não informado"
-        ];
-
-        valores.forEach(function (valor) {
-
-            const coluna = document.createElement("td");
-
-            coluna.textContent = valor;
-
-            linha.appendChild(coluna);
-
-        });
+        colunaComprovante.appendChild(botao);
+        linha.appendChild(colunaComprovante);
 
         tabelaSorteios.appendChild(linha);
 
