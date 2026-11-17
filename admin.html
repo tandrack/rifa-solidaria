@@ -228,6 +228,61 @@
 .historico-sorteios h3 {
     color: #176b3a;
 }
+/* ANIMAÇÃO E COMPROVANTE */
+
+.acoes-resultado {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.acoes-resultado button {
+    flex: 1;
+    min-width: 180px;
+    margin-top: 0;
+    color: white;
+    font-weight: bold;
+}
+
+.botao-comprovante {
+    background: #198754;
+}
+
+.botao-compartilhar {
+    background: #1877c9;
+}
+
+.numero-vencedor.animando {
+    animation: pulsarNumero 0.18s infinite alternate;
+}
+
+@keyframes pulsarNumero {
+    from {
+        transform: scale(0.96);
+        opacity: 0.65;
+    }
+
+    to {
+        transform: scale(1.06);
+        opacity: 1;
+    }
+}
+
+.acoes-resultado button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media (max-width: 500px) {
+    .acoes-resultado {
+        flex-direction: column;
+    }
+
+    .acoes-resultado button {
+        width: 100%;
+    }
+} 
         @media (max-width: 700px) {
 
             .resumo {
@@ -370,25 +425,47 @@
         class="mensagem-sorteio"
     ></div>
 
-    <div class="resultado-sorteio">
+   <div class="resultado-sorteio">
 
-        <h3>🏆 Resultado do Sorteio</h3>
+    <h3>🏆 Resultado do Sorteio</h3>
 
-        <div
-            id="resultadoNumero"
-            class="numero-vencedor"
+    <div
+        id="resultadoNumero"
+        class="numero-vencedor"
+    >
+        ???
+    </div>
+
+    <div
+        id="detalhesVencedor"
+        class="detalhes-vencedor"
+    >
+        Aguardando realização do sorteio.
+    </div>
+
+    <div class="acoes-resultado">
+
+        <button
+            type="button"
+            id="botaoComprovante"
+            class="botao-comprovante"
+            disabled
         >
-            ???
-        </div>
+            📄 Gerar Comprovante
+        </button>
 
-        <div
-            id="detalhesVencedor"
-            class="detalhes-vencedor"
+        <button
+            type="button"
+            id="botaoCompartilhar"
+            class="botao-compartilhar"
+            disabled
         >
-            Aguardando realização do sorteio.
-        </div>
+            📲 Compartilhar Resultado
+        </button>
 
     </div>
+
+</div>
 
     <!-- HISTÓRICO -->
 
@@ -406,6 +483,7 @@
                         <th>Número</th>
                         <th>Ganhador</th>
                         <th>WhatsApp</th>
+                        <th>Comprovante</th>
                     </tr>
                 </thead>
 
@@ -530,6 +608,12 @@ const mensagemSorteio =
 
 const tabelaSorteios =
     document.getElementById("tabelaSorteios");
+
+const botaoComprovante =
+    document.getElementById("botaoComprovante");
+
+const botaoCompartilhar =
+    document.getElementById("botaoCompartilhar");
 
 /*
  * LOGIN
@@ -783,17 +867,115 @@ async function carregarNumeros() {
 }
 
 /*
- * REALIZAR SORTEIO
+ * SORTEIO, ANIMAÇÃO E COMPROVANTES
  */
 
+let ultimoSorteio = null;
+let intervaloAnimacao = null;
+
 botaoSortear.onclick = realizarSorteio;
+
+botaoComprovante.onclick = async function () {
+
+    if (!ultimoSorteio) return;
+
+    try {
+        await baixarComprovante(ultimoSorteio);
+    } catch (error) {
+        console.error(error);
+        alert("Não foi possível gerar o comprovante.");
+    }
+
+};
+
+botaoCompartilhar.onclick = async function () {
+
+    if (!ultimoSorteio) return;
+
+    try {
+        await compartilharResultado(ultimoSorteio);
+    } catch (error) {
+        console.error(error);
+
+        if (error.name !== "AbortError") {
+            alert("Não foi possível compartilhar o resultado.");
+        }
+    }
+
+};
+
+
+/* FORMATAR NÚMERO */
+
+function formatarNumeroSorteio(numero) {
+    return String(numero).padStart(3, "0");
+}
+
+
+/* ESPERAR */
+
+function esperarSorteio(tempo) {
+    return new Promise(resolve => setTimeout(resolve, tempo));
+}
+
+
+/* ANIMAÇÃO DE REVELAÇÃO */
+
+async function animarRevelacao(numeroFinal, candidatos) {
+
+    resultadoNumero.classList.add("animando");
+
+    for (let i = 0; i < 14; i++) {
+
+        const indice = Math.floor(
+            Math.random() * candidatos.length
+        );
+
+        resultadoNumero.textContent =
+            formatarNumeroSorteio(candidatos[indice]);
+
+        await esperarSorteio(70 + (i * 22));
+
+    }
+
+    resultadoNumero.textContent =
+        formatarNumeroSorteio(numeroFinal);
+
+    resultadoNumero.classList.remove("animando");
+
+}
+
+
+/* MOSTRAR RESULTADO */
+
+function exibirResultadoSorteio(item) {
+
+    resultadoNumero.textContent =
+        formatarNumeroSorteio(item.numero);
+
+    detalhesVencedor.textContent =
+        "🎉 GANHADOR: " +
+        (item.nome_comprador || "Não informado") +
+        " | WhatsApp: " +
+        (item.whatsapp || "Não informado") +
+        " | Data: " +
+        new Date(item.sorteado_em).toLocaleString("pt-BR");
+
+    botaoComprovante.disabled = false;
+    botaoCompartilhar.disabled = false;
+
+}
+
+
+/* REALIZAR SORTEIO */
 
 async function realizarSorteio() {
 
     const confirmar = confirm(
         "ATENÇÃO!\n\n" +
-        "Será realizado um sorteio entre todos os " +
+        "Será realizado um sorteio real entre todos os " +
         "números com pagamento confirmado.\n\n" +
+        "O resultado ficará registrado no histórico.\n\n" +
         "Deseja continuar?"
     );
 
@@ -804,7 +986,51 @@ async function realizarSorteio() {
 
     mensagemSorteio.style.display = "none";
 
+    const inicio = Date.now();
+
     try {
+
+        // Buscar números pagos para a animação
+
+        const { data: elegiveis, error: erroElegiveis } =
+            await supabaseClient
+                .from("numeros_rifa")
+                .select("numero")
+                .eq("status", "pago");
+
+        if (erroElegiveis) {
+            throw erroElegiveis;
+        }
+
+        if (!elegiveis || elegiveis.length === 0) {
+            throw new Error(
+                "Não existem números pagos para o sorteio."
+            );
+        }
+
+        const candidatos = elegiveis.map(
+            item => item.numero
+        );
+
+        // Iniciar animação visual
+
+        let indice = 0;
+
+        intervaloAnimacao = setInterval(function () {
+
+            resultadoNumero.textContent =
+                formatarNumeroSorteio(
+                    candidatos[indice % candidatos.length]
+                );
+
+            indice++;
+
+        }, 75);
+
+        detalhesVencedor.textContent =
+            "Estamos realizando o sorteio...";
+
+        // O Supabase escolhe o verdadeiro ganhador
 
         const { data, error } =
             await supabaseClient.rpc("realizar_sorteio");
@@ -813,32 +1039,463 @@ async function realizarSorteio() {
             throw error;
         }
 
-        if (!data || !data.id) {
+        if (!data || !data.id || data.numero == null) {
             throw new Error("Resultado inválido.");
         }
 
-        const numeroFormatado =
-            String(data.numero).padStart(3, "0");
+        // Garantir tempo mínimo de suspense
 
-        resultadoNumero.textContent =
-            numeroFormatado;
+        const tempoDecorrido = Date.now() - inicio;
 
-        detalhesVencedor.textContent =
-            "🎉 GANHADOR: " +
-            (data.nome_comprador || "Não informado") +
-            " | WhatsApp: " +
-            (data.whatsapp || "Não informado") +
-            " | Data: " +
-            new Date(data.sorteado_em)
-                .toLocaleString("pt-BR");
+        if (tempoDecorrido < 1200) {
+            await esperarSorteio(1200 - tempoDecorrido);
+        }
+
+        // Parar a animação e revelar o resultado verdadeiro
+
+        clearInterval(intervaloAnimacao);
+        intervaloAnimacao = null;
+
+        await animarRevelacao(data.numero, candidatos);
+
+        // Guardar resultado atual
+
+        ultimoSorteio = data;
+
+        exibirResultadoSorteio(data);
 
         mostrarMensagemSorteio(
-            "Sorteio realizado e resultado registrado com sucesso!",
+            "Sorteio realizado e registrado com sucesso!",
             true
         );
 
+        // Atualizar painel e histórico
+
         await carregarNumeros();
         await carregarHistoricoSorteios();
+
+    } catch (error) {
+
+        console.error("Erro no sorteio:", error);
+
+        if (intervaloAnimacao !== null) {
+            clearInterval(intervaloAnimacao);
+            intervaloAnimacao = null;
+        }
+
+        resultadoNumero.classList.remove("animando");
+
+        if (ultimoSorteio) {
+            exibirResultadoSorteio(ultimoSorteio);
+        } else {
+            resultadoNumero.textContent = "???";
+
+            detalhesVencedor.textContent =
+                "Aguardando realização do sorteio.";
+        }
+
+        mostrarMensagemSorteio(
+            error.message ||
+            "Não foi possível realizar o sorteio. Confira o histórico antes de tentar novamente.",
+            false
+        );
+
+    } finally {
+
+        if (intervaloAnimacao !== null) {
+            clearInterval(intervaloAnimacao);
+            intervaloAnimacao = null;
+        }
+
+        botaoSortear.disabled = false;
+
+        botaoSortear.textContent =
+            "🎯 REALIZAR SORTEIO";
+
+    }
+
+}
+
+
+/* MENSAGEM DO SORTEIO */
+
+function mostrarMensagemSorteio(texto, sucesso) {
+
+    mensagemSorteio.textContent = texto;
+
+    mensagemSorteio.style.display = "block";
+
+    mensagemSorteio.style.background =
+        sucesso ? "#d1e7dd" : "#f8d7da";
+
+    mensagemSorteio.style.color =
+        sucesso ? "#0f5132" : "#842029";
+
+}
+
+
+/* CRIAR IMAGEM DO COMPROVANTE */
+
+async function criarComprovanteBlob(item) {
+
+    const canvas = document.createElement("canvas");
+
+    canvas.width = 1200;
+    canvas.height = 1500;
+
+    const ctx = canvas.getContext("2d");
+
+    if (!ctx) {
+        throw new Error("Não foi possível criar a imagem.");
+    }
+
+    // Fundo
+
+    ctx.fillStyle = "#edf3ef";
+    ctx.fillRect(0, 0, 1200, 1500);
+
+    // Cartão
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(70, 70, 1060, 1360);
+
+    // Cabeçalho verde
+
+    ctx.fillStyle = "#176b3a";
+    ctx.fillRect(70, 70, 1060, 280);
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+
+    ctx.font = "bold 66px Arial";
+    ctx.fillText("RIFA SOLIDÁRIA", 600, 175);
+
+    ctx.font = "34px Arial";
+    ctx.fillText("COMPROVANTE DE SORTEIO", 600, 245);
+
+    // Número vencedor
+
+    ctx.fillStyle = "#176b3a";
+    ctx.font = "bold 45px Arial";
+
+    ctx.fillText("NÚMERO SORTEADO", 600, 470);
+
+    ctx.font = "bold 150px Arial";
+
+    ctx.fillText(
+        formatarNumeroSorteio(item.numero),
+        600,
+        660
+    );
+
+    // Ganhador
+
+    ctx.fillStyle = "#222222";
+    ctx.font = "bold 38px Arial";
+
+    ctx.fillText("GANHADOR", 600, 800);
+
+    ctx.font = "bold 48px Arial";
+
+    ctx.fillText(
+        item.nome_comprador || "Não informado",
+        600,
+        890,
+        980
+    );
+
+    // WhatsApp parcialmente protegido
+
+    const telefone = String(
+        item.whatsapp || ""
+    ).replace(/\D/g, "");
+
+    const telefoneProtegido = telefone.length >= 4
+        ? "****" + telefone.slice(-4)
+        : "Não informado";
+
+    ctx.font = "32px Arial";
+    ctx.fillStyle = "#555555";
+
+    ctx.fillText(
+        "WhatsApp: " + telefoneProtegido,
+        600,
+        980
+    );
+
+    // Data
+
+    ctx.fillText(
+        "Data: " +
+        new Date(item.sorteado_em).toLocaleString("pt-BR"),
+        600,
+        1070
+    );
+
+    ctx.fillText(
+        "Registro do sorteio: #" + item.id,
+        600,
+        1160
+    );
+
+    // Rodapé
+
+    ctx.fillStyle = "#176b3a";
+    ctx.fillRect(150, 1250, 900, 4);
+
+    ctx.fillStyle = "#555555";
+    ctx.font = "28px Arial";
+
+    ctx.fillText(
+        "Resultado registrado no sistema da Rifa Solidária",
+        600,
+        1320
+    );
+
+    ctx.font = "24px Arial";
+
+    ctx.fillText(
+        "Comprovante gerado pelo painel administrativo",
+        600,
+        1370
+    );
+
+    // Converter para PNG
+
+    return await new Promise((resolve, reject) => {
+
+        canvas.toBlob(function (blob) {
+
+            if (blob) {
+                resolve(blob);
+            } else {
+                reject(
+                    new Error("Falha ao gerar a imagem.")
+                );
+            }
+
+        }, "image/png");
+
+    });
+
+}
+
+
+/* NOME DO ARQUIVO */
+
+function nomeArquivoComprovante(item) {
+
+    return "rifa-solidaria-sorteio-" +
+        formatarNumeroSorteio(item.numero) +
+        ".png";
+
+}
+
+
+/* BAIXAR COMPROVANTE */
+
+async function baixarComprovante(item) {
+
+    const blob = await criarComprovanteBlob(item);
+
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = nomeArquivoComprovante(item);
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    link.remove();
+
+    setTimeout(function () {
+        URL.revokeObjectURL(url);
+    }, 1500);
+
+}
+
+
+/* COMPARTILHAR RESULTADO */
+
+async function compartilharResultado(item) {
+
+    const blob = await criarComprovanteBlob(item);
+
+    const arquivo = new File(
+        [blob],
+        nomeArquivoComprovante(item),
+        { type: "image/png" }
+    );
+
+    const texto =
+        "🏆 RESULTADO DA RIFA SOLIDÁRIA\n\n" +
+        "Número sorteado: " +
+        formatarNumeroSorteio(item.numero) + "\n" +
+        "Ganhador: " +
+        (item.nome_comprador || "Não informado") + "\n" +
+        "Data: " +
+        new Date(item.sorteado_em).toLocaleString("pt-BR") +
+        "\n\nParabéns ao ganhador!";
+
+    let suportaCompartilhamentoDeImagem = false;
+
+    try {
+
+        suportaCompartilhamentoDeImagem =
+            !!navigator.share &&
+            !!navigator.canShare &&
+            navigator.canShare({
+                files: [arquivo]
+            });
+
+    } catch (error) {
+
+        suportaCompartilhamentoDeImagem = false;
+
+    }
+
+    if (suportaCompartilhamentoDeImagem) {
+
+        await navigator.share({
+            files: [arquivo],
+            title: "Resultado da Rifa Solidária",
+            text: texto
+        });
+
+        return;
+    }
+
+    // Alternativa para navegadores sem compartilhamento de imagem
+
+    await baixarComprovante(item);
+
+    alert(
+        "O comprovante foi baixado.\n\n" +
+        "Agora anexe a imagem no WhatsApp."
+    );
+
+    window.location.href =
+        "https://wa.me/?text=" +
+        encodeURIComponent(texto);
+
+}
+
+
+/* CARREGAR HISTÓRICO */
+
+async function carregarHistoricoSorteios() {
+
+    tabelaSorteios.innerHTML = "";
+
+    const { data, error } =
+        await supabaseClient
+            .from("sorteios")
+            .select("*")
+            .order("sorteado_em", {
+                ascending: false
+            });
+
+    if (error) {
+
+        console.error("Erro no histórico:", error);
+
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+
+        coluna.colSpan = 5;
+
+        coluna.textContent =
+            "Não foi possível carregar o histórico.";
+
+        linha.appendChild(coluna);
+
+        tabelaSorteios.appendChild(linha);
+
+        return;
+    }
+
+    if (!data || data.length === 0) {
+
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+
+        coluna.colSpan = 5;
+
+        coluna.textContent =
+            "Nenhum sorteio realizado até o momento.";
+
+        linha.appendChild(coluna);
+
+        tabelaSorteios.appendChild(linha);
+
+        return;
+    }
+
+    data.forEach(function (item) {
+
+        const linha = document.createElement("tr");
+
+        const valores = [
+            new Date(item.sorteado_em)
+                .toLocaleString("pt-BR"),
+
+            formatarNumeroSorteio(item.numero),
+
+            item.nome_comprador || "Não informado",
+
+            item.whatsapp || "Não informado"
+        ];
+
+        valores.forEach(function (valor) {
+
+            const coluna = document.createElement("td");
+
+            coluna.textContent = valor;
+
+            linha.appendChild(coluna);
+
+        });
+
+        // Botão de comprovante individual
+
+        const colunaAcao = document.createElement("td");
+
+        const botao = document.createElement("button");
+
+        botao.type = "button";
+        botao.className = "botao-pago";
+        botao.textContent = "📄 Gerar";
+
+        botao.onclick = async function () {
+
+            try {
+
+                await baixarComprovante(item);
+
+            } catch (error) {
+
+                console.error(error);
+
+                alert(
+                    "Não foi possível gerar o comprovante."
+                );
+
+            }
+
+        };
+
+        colunaAcao.appendChild(botao);
+
+        linha.appendChild(colunaAcao);
+
+        tabelaSorteios.appendChild(linha);
+
+    });
+
+}
 
     } catch (error) {
 
@@ -902,7 +1559,7 @@ async function carregarHistoricoSorteios() {
         const linha = document.createElement("tr");
         const coluna = document.createElement("td");
 
-        coluna.colSpan = 4;
+        coluna.colSpan = 5;
         coluna.textContent =
             "Não foi possível carregar o histórico.";
 
@@ -917,7 +1574,7 @@ async function carregarHistoricoSorteios() {
         const linha = document.createElement("tr");
         const coluna = document.createElement("td");
 
-        coluna.colSpan = 4;
+        coluna.colSpan = 5;
         coluna.textContent =
             "Nenhum sorteio realizado até o momento.";
 
