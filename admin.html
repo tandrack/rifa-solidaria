@@ -158,7 +158,76 @@
         .pago {
             color: #198754;
         }
+/* SORTEIO */
 
+.secao-sorteio {
+    margin: 30px 0;
+    padding: 22px;
+    background: #f1f8f3;
+    border: 1px solid #cce5d5;
+    border-radius: 14px;
+}
+
+.secao-sorteio h2 {
+    margin-top: 0;
+    color: #176b3a;
+}
+
+.info-sorteio {
+    color: #555;
+    line-height: 1.6;
+}
+
+.botao-sortear {
+    width: 100%;
+    padding: 15px;
+    background: #198754;
+    color: white;
+    font-weight: bold;
+    font-size: 17px;
+}
+
+.botao-sortear:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.resultado-sorteio {
+    margin-top: 20px;
+    padding: 22px;
+    background: white;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+
+.numero-vencedor {
+    font-size: 48px;
+    font-weight: bold;
+    color: #198754;
+    margin: 12px 0;
+}
+
+.detalhes-vencedor {
+    line-height: 1.8;
+    color: #333;
+    overflow-wrap: anywhere;
+}
+
+.mensagem-sorteio {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 8px;
+    display: none;
+}
+
+.historico-sorteios {
+    margin-top: 25px;
+}
+
+.historico-sorteios h3 {
+    color: #176b3a;
+}
         @media (max-width: 700px) {
 
             .resumo {
@@ -273,7 +342,90 @@
                 R$ 0,00
             </span>
         </h2>
+<!-- SORTEIO DA RIFA -->
 
+<div class="secao-sorteio">
+
+    <h2>🏆 Sorteio da Rifa Solidária</h2>
+
+    <p class="info-sorteio">
+        Somente números com pagamento confirmado
+        participam do sorteio.
+    </p>
+
+    <p>
+        Números elegíveis:
+        <strong id="totalElegiveis">0</strong>
+    </p>
+
+    <button
+        id="botaoSortear"
+        class="botao-sortear"
+    >
+        🎯 REALIZAR SORTEIO
+    </button>
+
+    <div
+        id="mensagemSorteio"
+        class="mensagem-sorteio"
+    ></div>
+
+    <div class="resultado-sorteio">
+
+        <h3>🏆 Resultado do Sorteio</h3>
+
+        <div
+            id="resultadoNumero"
+            class="numero-vencedor"
+        >
+            ???
+        </div>
+
+        <div
+            id="detalhesVencedor"
+            class="detalhes-vencedor"
+        >
+            Aguardando realização do sorteio.
+        </div>
+
+    </div>
+
+    <!-- HISTÓRICO -->
+
+    <div class="historico-sorteios">
+
+        <h3>📜 Histórico de Sorteios</h3>
+
+        <div class="tabela-container">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Número</th>
+                        <th>Ganhador</th>
+                        <th>WhatsApp</th>
+                    </tr>
+                </thead>
+
+                <tbody id="tabelaSorteios">
+
+                    <tr>
+                        <td colspan="4">
+                            Nenhum sorteio realizado.
+                        </td>
+                    </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</div>
 
         <!-- TABELA -->
 
@@ -361,6 +513,23 @@ const totalPagos =
 const valorArrecadado =
     document.getElementById("valorArrecadado");
 
+const totalElegiveis =
+    document.getElementById("totalElegiveis");
+
+const botaoSortear =
+    document.getElementById("botaoSortear");
+
+const resultadoNumero =
+    document.getElementById("resultadoNumero");
+
+const detalhesVencedor =
+    document.getElementById("detalhesVencedor");
+
+const mensagemSorteio =
+    document.getElementById("mensagemSorteio");
+
+const tabelaSorteios =
+    document.getElementById("tabelaSorteios");
 
 /*
  * LOGIN
@@ -431,6 +600,7 @@ function mostrarPainel() {
     painel.style.display = "block";
 
     carregarNumeros();
+    carregarHistoricoSorteios();
 }
 
 
@@ -601,6 +771,9 @@ async function carregarNumeros() {
     totalPagos.textContent =
         pagos;
 
+    totalElegiveis.textContent = 
+        pagos;
+    
     valorArrecadado.textContent =
         "R$ " +
         arrecadado
@@ -609,7 +782,181 @@ async function carregarNumeros() {
 
 }
 
+/*
+ * REALIZAR SORTEIO
+ */
 
+botaoSortear.onclick = realizarSorteio;
+
+async function realizarSorteio() {
+
+    const confirmar = confirm(
+        "ATENÇÃO!\n\n" +
+        "Será realizado um sorteio entre todos os " +
+        "números com pagamento confirmado.\n\n" +
+        "Deseja continuar?"
+    );
+
+    if (!confirmar) return;
+
+    botaoSortear.disabled = true;
+    botaoSortear.textContent = "REALIZANDO SORTEIO...";
+
+    mensagemSorteio.style.display = "none";
+
+    try {
+
+        const { data, error } =
+            await supabaseClient.rpc("realizar_sorteio");
+
+        if (error) {
+            throw error;
+        }
+
+        if (!data || !data.id) {
+            throw new Error("Resultado inválido.");
+        }
+
+        const numeroFormatado =
+            String(data.numero).padStart(3, "0");
+
+        resultadoNumero.textContent =
+            numeroFormatado;
+
+        detalhesVencedor.textContent =
+            "🎉 GANHADOR: " +
+            (data.nome_comprador || "Não informado") +
+            " | WhatsApp: " +
+            (data.whatsapp || "Não informado") +
+            " | Data: " +
+            new Date(data.sorteado_em)
+                .toLocaleString("pt-BR");
+
+        mostrarMensagemSorteio(
+            "Sorteio realizado e resultado registrado com sucesso!",
+            true
+        );
+
+        await carregarNumeros();
+        await carregarHistoricoSorteios();
+
+    } catch (error) {
+
+        console.error("Erro no sorteio:", error);
+
+        mostrarMensagemSorteio(
+            error.message || "Não foi possível realizar o sorteio.",
+            false
+        );
+
+    } finally {
+
+        botaoSortear.disabled = false;
+        botaoSortear.textContent =
+            "🎯 REALIZAR SORTEIO";
+
+    }
+
+}
+
+
+/*
+ * MENSAGEM DO SORTEIO
+ */
+
+function mostrarMensagemSorteio(texto, sucesso) {
+
+    mensagemSorteio.textContent = texto;
+
+    mensagemSorteio.style.display = "block";
+
+    mensagemSorteio.style.background =
+        sucesso ? "#d1e7dd" : "#f8d7da";
+
+    mensagemSorteio.style.color =
+        sucesso ? "#0f5132" : "#842029";
+
+}
+
+
+/*
+ * CARREGAR HISTÓRICO
+ */
+
+async function carregarHistoricoSorteios() {
+
+    tabelaSorteios.innerHTML = "";
+
+    const { data, error } =
+        await supabaseClient
+            .from("sorteios")
+            .select("*")
+            .order("sorteado_em", {
+                ascending: false
+            });
+
+    if (error) {
+
+        console.error("Erro no histórico:", error);
+
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+
+        coluna.colSpan = 4;
+        coluna.textContent =
+            "Não foi possível carregar o histórico.";
+
+        linha.appendChild(coluna);
+        tabelaSorteios.appendChild(linha);
+
+        return;
+    }
+
+    if (!data || data.length === 0) {
+
+        const linha = document.createElement("tr");
+        const coluna = document.createElement("td");
+
+        coluna.colSpan = 4;
+        coluna.textContent =
+            "Nenhum sorteio realizado até o momento.";
+
+        linha.appendChild(coluna);
+        tabelaSorteios.appendChild(linha);
+
+        return;
+    }
+
+    data.forEach(function (item) {
+
+        const linha = document.createElement("tr");
+
+        const valores = [
+            new Date(item.sorteado_em)
+                .toLocaleString("pt-BR"),
+
+            String(item.numero).padStart(3, "0"),
+
+            item.nome_comprador || "Não informado",
+
+            item.whatsapp || "Não informado"
+        ];
+
+        valores.forEach(function (valor) {
+
+            const coluna = document.createElement("td");
+
+            coluna.textContent = valor;
+
+            linha.appendChild(coluna);
+
+        });
+
+        tabelaSorteios.appendChild(linha);
+
+    });
+
+}
 /*
  * MARCAR COMO PAGO
  */
